@@ -6,24 +6,22 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     context.log(req);
 
     try {
-        const products = await productsModel.list();
-        
-        const productsWithStock = [];
+        const product = await productsModel.create({
+            title: req.body.title,
+            description: req.body.description,
+            price: req.body.price
 
-        for (const product of products) {
-            const stock = await stocksModel.readByProductId(product.id);
-            productsWithStock.push({
-              id: product.id,
-              title: product.title,
-              description: product.description,
-              price: product.price,
-              count: stock.count || 'N/A',
-            });
-          }
-
+        });
+        const stock = await stocksModel.create({
+            product_id: product.id,
+            count: req.body.count
+        });
         context.res = {
             // status: 200, /* Defaults to 200 */
-            body: productsWithStock
+            body: {
+                product: product,
+                stock: stock
+            }
         };
 
     } catch (error) {
