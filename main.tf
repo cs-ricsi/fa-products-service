@@ -27,6 +27,10 @@ resource "azurerm_storage_account" "products_service_fa" {
   account_kind             = "StorageV2"
 
   resource_group_name = azurerm_resource_group.product_service_rg.name
+
+  static_website {
+    index_document = "index.html"
+  }
 }
 
 resource "azurerm_storage_share" "products_service_fa" {
@@ -57,7 +61,7 @@ resource "azurerm_application_insights" "products_service_fa" {
 
 
 resource "azurerm_windows_function_app" "products_service" {
-  name     = "fa-products-service-ne-csr"
+  name     = "fa-products-service-ne-csr-001"
   location = "northeurope"
 
   service_plan_id     = azurerm_service_plan.product_service_plan.id
@@ -76,7 +80,7 @@ resource "azurerm_windows_function_app" "products_service" {
     application_insights_connection_string = azurerm_application_insights.products_service_fa.connection_string
 
     # For production systems set this to false
-    use_32_bit_worker = false
+    use_32_bit_worker = true
 
     # Enable function invocations from Azure Portal.
     cors {
@@ -102,5 +106,66 @@ resource "azurerm_windows_function_app" "products_service" {
       tags["hidden-link: /app-insights-resource-id"],
       tags["hidden-link: /app-insights-conn-string"]
     ]
+  }
+}
+
+resource "azurerm_cosmosdb_account" "test_app" {
+  location            = "northeurope"
+  name                = "cos-app-sand-ne-csr-001"
+  offer_type          = "Standard"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+  kind                = "GlobalDocumentDB"
+
+  consistency_policy {
+    consistency_level = "Eventual"
+  }
+
+  capabilities {
+    name = "EnableServerless"
+  }
+
+  geo_location {
+    failover_priority = 0
+    location          = "North Europe"
+  }
+}
+
+resource "azurerm_cosmosdb_sql_database" "products_app" {
+  account_name        = azurerm_cosmosdb_account.test_app.name
+  name                = "products-db"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+}
+
+resource "azurerm_cosmosdb_sql_container" "products" {
+  account_name        = azurerm_cosmosdb_account.test_app.name
+  database_name       = azurerm_cosmosdb_sql_database.products_app.name
+  name                = "products"
+  partition_key_path  = "/id"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+
+  # Cosmos DB supports TTL for the records
+  default_ttl = -1
+
+  indexing_policy {
+    excluded_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "stocks" {
+  account_name        = azurerm_cosmosdb_account.test_app.name
+  database_name       = azurerm_cosmosdb_sql_database.products_app.name
+  name                = "stocks"
+  partition_key_path  = "/id"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+
+  # Cosmos DB supports TTL for the records
+  default_ttl = -1
+
+  indexing_policy {
+    excluded_path {
+      path = "/*"
+    }
   }
 }

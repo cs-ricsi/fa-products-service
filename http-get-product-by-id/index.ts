@@ -1,12 +1,14 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
-import { Product } from "../model/product"
+import productsModel from '../model/product'
+import sctocksModel from '../model/stock'
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-    context.log('HTTP trigger function processed a request.');
+    context.log(req);
 
-    const product: Product = {
-        id: req.params.productId, title: 'ProductOne', description: 'Short Product Description1', price: '10'
-    };
+    const product = await productsModel.read(req.params.productId);
+
+    const stock = await sctocksModel.readByProductId(product.id);
+    product.count = stock.count;
 
     context.res = {
         // status: 200, /* Defaults to 200 */
