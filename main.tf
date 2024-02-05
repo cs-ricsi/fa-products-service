@@ -84,7 +84,7 @@ resource "azurerm_windows_function_app" "products_service" {
 
     # Enable function invocations from Azure Portal.
     cors {
-      allowed_origins = ["https://portal.azure.com"]
+      allowed_origins = ["https://portal.azure.com", "https://stgsangproductsfanecsr.z16.web.core.windows.net"]
     }
 
     application_stack {
@@ -168,4 +168,27 @@ resource "azurerm_cosmosdb_sql_container" "stocks" {
       path = "/*"
     }
   }
+}
+
+resource "azurerm_servicebus_namespace" "sb" {
+  name                          = "my-new-servicebus"
+  location                      = "northeurope"
+  resource_group_name           = azurerm_resource_group.product_service_rg.name
+  sku                           = "Basic"
+  capacity                      = 0 /* standard for sku plan */
+  zone_redundant                = false /* can be changed to true for premium */
+}
+
+resource "azurerm_servicebus_queue" "example" {
+  name                                    = "my_new_servicebus_queue"
+  namespace_id                            = azurerm_servicebus_namespace.sb.id
+  status                                  = "Active" /* Default value */
+  enable_partitioning                     = true /* Default value */
+  lock_duration                           = "PT1M" /* ISO 8601 timespan duration, 5 min is max */
+  max_size_in_megabytes                   = 1024 /* Default value */
+  max_delivery_count                      = 10 /* Default value */
+  requires_duplicate_detection            = false
+  duplicate_detection_history_time_window = "PT10M" /* ISO 8601 timespan duration, 5 min is max */
+  requires_session                        = false
+  dead_lettering_on_message_expiration    = false
 }
