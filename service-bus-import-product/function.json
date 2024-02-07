@@ -4,8 +4,8 @@
       "name": "mySbMsg",
       "type": "serviceBusTrigger",
       "direction": "in",
-      "queueName": "myinputqueue",
-      "connection": ""
+      "queueName": "my_new_servicebus_queue",
+      "connection": "ServiceBusConnectionString"
     }
   ],
   "scriptFile": "../dist/service-bus-import-product/index.js"
